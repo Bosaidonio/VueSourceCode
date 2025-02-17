@@ -1,3 +1,6 @@
+/*
+* options选项相关类型定义
+*/
 declare type InternalComponentOptions = {
   _isComponent: true;
   parent: Component;

@@ -1,3 +1,6 @@
+/*
+* 服务端渲染相关类型定义
+*/
 declare type ComponentWithCacheContext = {
   type: 'ComponentWithCache';
   bufferIndex: number;

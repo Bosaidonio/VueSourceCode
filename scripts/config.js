@@ -1,14 +1,24 @@
 const path = require('path')
+// 将js转换为兼容性更高的代码。
 const buble = require('rollup-plugin-buble')
+// 模块路径别名插件，用于简化路径引用。
 const alias = require('rollup-plugin-alias')
+// 将 CommonJS 模块转换为 ES 模块。
 const cjs = require('rollup-plugin-commonjs')
+// 替换代码中的变量或字符串。
 const replace = require('rollup-plugin-replace')
+// 解析 Node.js 模块。
 const node = require('rollup-plugin-node-resolve')
+// 移除 Flow 类型注解。
 const flow = require('rollup-plugin-flow-no-whitespace')
+// 获取版本号
 const version = process.env.VERSION || require('../package.json').version
+// vue支持weex的版本号
 const weexVersion = process.env.WEEX_VERSION || require('../packages/weex-vue-framework/package.json').version
+// 用于注入环境变量
 const featureFlags = require('./feature-flags')
 
+// 生成文件注释
 const banner =
   '/*!\n' +
   ` * Vue.js v${version}\n` +

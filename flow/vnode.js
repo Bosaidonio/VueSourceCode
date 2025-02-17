@@ -1,3 +1,6 @@
+/*
+* vnode相关类型定义
+*/
 declare type VNodeChildren = Array<?VNode | string | VNodeChildren> | string;
 
 declare type VNodeComponentOptions = {

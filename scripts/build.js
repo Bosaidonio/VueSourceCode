@@ -1,13 +1,18 @@
+/*
+* 执行npm run build的入口文件
+*/
 const fs = require('fs')
 const path = require('path')
 const zlib = require('zlib')
 const rollup = require('rollup')
 const terser = require('terser')
 
+// 判断dist目录是否存在,如果不存在则创建dist目录
 if (!fs.existsSync('dist')) {
+  // 创建dist目录
   fs.mkdirSync('dist')
 }
-
+// 导入build时的配置文件
 let builds = require('./config').getAllBuilds()
 
 // filter builds via command line arg

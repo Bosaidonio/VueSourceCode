@@ -1,3 +1,6 @@
+/*
+* 全局api数据结构
+*/
 declare interface GlobalAPI {
   cid: number;
   options: Object;

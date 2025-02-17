@@ -1,3 +1,6 @@
+/*
+* weex平台相关类型定义
+*/
 // global flag to be compiled away
 declare var __WEEX__: boolean;
 

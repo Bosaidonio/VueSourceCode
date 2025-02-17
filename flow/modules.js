@@ -1,3 +1,6 @@
+/*
+* 第三方库类型定义
+*/
 declare module 'he' {
   declare function escape(html: string): string;
   declare function decode(html: string): string;
