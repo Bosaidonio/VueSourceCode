@@ -1,14 +1,17 @@
 /* @flow */
 
+// vue全局配置信息
 import config from 'core/config'
+// cached函数位置： src/shared/util.js
 import { warn, cached } from 'core/util/index'
+// 性能测试
 import { mark, measure } from 'core/util/perf'
 
 import Vue from './runtime/index'
 import { query } from './util/index'
 import { compileToFunctions } from './compiler/index'
 import { shouldDecodeNewlines, shouldDecodeNewlinesForHref } from './util/compat'
-
+// 当template的值以#开头，则从id中获取template内容
 const idToTemplate = cached(id => {
   const el = query(id)
   return el && el.innerHTML

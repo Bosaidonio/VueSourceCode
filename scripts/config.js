@@ -11,7 +11,7 @@ const replace = require('rollup-plugin-replace')
 const node = require('rollup-plugin-node-resolve')
 // 移除 Flow 类型注解。
 const flow = require('rollup-plugin-flow-no-whitespace')
-// 获取版本号
+// 获取vue版本号
 const version = process.env.VERSION || require('../package.json').version
 // vue支持weex的版本号
 const weexVersion = process.env.WEEX_VERSION || require('../packages/weex-vue-framework/package.json').version
@@ -26,6 +26,7 @@ const banner =
   ' * Released under the MIT License.\n' +
   ' */'
 
+// 自定义插件，用于生成 Weex 的工厂函数
 const weexFactoryPlugin = {
   intro () {
     return 'module.exports = function weexFactory (exports, document) {'
@@ -34,17 +35,21 @@ const weexFactoryPlugin = {
     return '}'
   }
 }
-
+// src目录下路径别名映射表，
 const aliases = require('./alias')
 const resolve = p => {
   const base = p.split('/')[0]
+  console.log('aliases[base]',aliases[base],base)
+  // 获取打包入口文件路径
   if (aliases[base]) {
+    // src/platforms/web + entry-runtime-with-compiler.js
     return path.resolve(aliases[base], p.slice(base.length + 1))
   } else {
+    // 获取打包文件输出路径
     return path.resolve(__dirname, '../', p)
   }
 }
-
+// 构建配置映射表，由package.json中的命令行参数决定运行哪个配置
 const builds = {
   // Runtime only (CommonJS). Used by bundlers e.g. Webpack & Browserify
   'web-runtime-cjs-dev': {
@@ -223,21 +228,37 @@ const builds = {
   }
 }
 
+/**
+ * 根据给定的名称生成Rollup构建配置
+ * @param {string} name - 构建配置的名称，对应builds对象中的键
+ * @returns {Object} - Rollup构建配置对象
+ */
 function genConfig (name) {
+  // 获取builds配置对象，name: builds对象的键
   const opts = builds[name]
+  // rollup配置对象
   const config = {
+    // 入口文件路径
     input: opts.entry,
+    // 外部依赖库
     external: opts.external,
+    // 插件数组，包含通用插件和根据具体配置添加的插件
     plugins: [
       flow(),
       alias(Object.assign({}, aliases, opts.alias))
     ].concat(opts.plugins || []),
+    // 输出配置
     output: {
+      // 输出文件路径
       file: opts.dest,
+      // 输出文件格式例如 cjs（CommonJS）、es（ES 模块）、umd（通用模块定义）。
       format: opts.format,
+      // 文件头部注释
       banner: opts.banner,
+      // UMD 格式下的全局变量名称。
       name: opts.moduleName || 'Vue'
     },
+    // 警告处理函数，忽略循环依赖的警告
     onwarn: (msg, warn) => {
       if (!/Circular/.test(msg)) {
         warn(msg)
@@ -245,37 +266,44 @@ function genConfig (name) {
     }
   }
 
-  // built-in vars
+  // 内置变量配置
   const vars = {
     __WEEX__: !!opts.weex,
     __WEEX_VERSION__: weexVersion,
     __VERSION__: version
   }
-  // feature flags
+  // 将featureFlags中的环境变量注入到构建配置中
   Object.keys(featureFlags).forEach(key => {
     vars[`process.env.${key}`] = featureFlags[key]
   })
-  // build-specific env
+  // 构建特定的环境变量
   if (opts.env) {
     vars['process.env.NODE_ENV'] = JSON.stringify(opts.env)
   }
+  // 将环境变量添加到插件中
   config.plugins.push(replace(vars))
 
+  // 是否需要转译，根据配置决定是否添加buble插件
   if (opts.transpile !== false) {
     config.plugins.push(buble())
   }
 
+  // 定义配置对象的_name属性，不可枚举
   Object.defineProperty(config, '_name', {
     enumerable: false,
     value: name
   })
 
+  // 返回构建配置对象
   return config
 }
 
+// 如果命令指定了TARGET 环境变量，则导出对应的目标配置。
 if (process.env.TARGET) {
   module.exports = genConfig(process.env.TARGET)
 } else {
+  // 否则，导出所有构建配置
   exports.getBuild = genConfig
+  // 获取所有构建配置
   exports.getAllBuilds = () => Object.keys(builds).map(genConfig)
 }

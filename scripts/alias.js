@@ -1,3 +1,6 @@
+/*
+*  src目录下的文件路径映射表，用于简化路径引用，
+*/
 const path = require('path')
 
 const resolve = p => path.resolve(__dirname, '../', p)

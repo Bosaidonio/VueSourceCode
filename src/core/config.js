@@ -8,123 +8,127 @@ import {
 
 import { LIFECYCLE_HOOKS } from 'shared/constants'
 
+/**
+ * Vue 配置对象的类型定义，包含用户配置项和平台相关配置项。
+ */
 export type Config = {
-  // user
-  optionMergeStrategies: { [key: string]: Function };
-  silent: boolean;
-  productionTip: boolean;
-  performance: boolean;
-  devtools: boolean;
-  errorHandler: ?(err: Error, vm: Component, info: string) => void;
-  warnHandler: ?(msg: string, vm: Component, trace: string) => void;
-  ignoredElements: Array<string | RegExp>;
-  keyCodes: { [key: string]: number | Array<number> };
+  // 用户配置项
+  optionMergeStrategies: { [key: string]: Function }; // 选项合并策略
+  silent: boolean; // 是否抑制警告
+  productionTip: boolean; // 是否显示生产模式提示信息
+  performance: boolean; // 是否启用性能追踪
+  devtools: boolean; // 是否启用开发者工具
+  errorHandler: ?(err: Error, vm: Component, info: string) => void; // 错误处理器
+  warnHandler: ?(msg: string, vm: Component, trace: string) => void; // 警告处理器
+  ignoredElements: Array<string | RegExp>; // 忽略的自定义元素列表
+  keyCodes: { [key: string]: number | Array<number> }; // 自定义按键别名
 
-  // platform
-  isReservedTag: (x?: string) => boolean;
-  isReservedAttr: (x?: string) => boolean;
-  parsePlatformTagName: (x: string) => string;
-  isUnknownElement: (x?: string) => boolean;
-  getTagNamespace: (x?: string) => string | void;
-  mustUseProp: (tag: string, type: ?string, name: string) => boolean;
+  // 平台相关配置项
+  isReservedTag: (x?: string) => boolean; // 检查标签是否为保留标签
+  isReservedAttr: (x?: string) => boolean; // 检查属性是否为保留属性
+  parsePlatformTagName: (x: string) => string; // 解析平台特定的标签名称
+  isUnknownElement: (x?: string) => boolean; // 检查标签是否为未知元素
+  getTagNamespace: (x?: string) => string | void; // 获取元素的命名空间
+  mustUseProp: (tag: string, type: ?string, name: string) => boolean; // 检查属性是否必须使用属性绑定
 
-  // private
-  async: boolean;
+  // 私有配置项
+  async: boolean; // 是否异步执行更新
 
-  // legacy
-  _lifecycleHooks: Array<string>;
+  // 遗留配置项
+  _lifecycleHooks: Array<string>; // 生命周期钩子（遗留）
 };
 
+/**
+ * Vue 的默认配置对象。
+ */
 export default ({
   /**
-   * Option merge strategies (used in core/util/options)
+   * 混入时的选项合并策略（用于 core/util/options）
    */
   // $flow-disable-line
   optionMergeStrategies: Object.create(null),
 
   /**
-   * Whether to suppress warnings.
+   * 是否取消 Vue 所有的日志与警告。
+   * https://v2.cn.vuejs.org/v2/api/#silent
    */
   silent: false,
 
   /**
-   * Show production mode tip message on boot?
+   * 是否在启动时显示式提示信息。
    */
   productionTip: process.env.NODE_ENV !== 'production',
 
   /**
-   * Whether to enable devtools
+   * 是否启用开发者工具。
    */
   devtools: process.env.NODE_ENV !== 'production',
 
   /**
-   * Whether to record perf
+   * 是否记录性能数据。
+   * 设置为 true 以在浏览器开发工具的性能/时间线面板中启用对组件初始化、编译、渲染和打补丁的性能追踪。
+   * 只适用于开发模式和支持 performance.mark API 的浏览器上。
    */
   performance: false,
 
   /**
-   * Error handler for watcher errors
+   * 监听器错误处理函数。
    */
   errorHandler: null,
 
   /**
-   * Warn handler for watcher warns
+   * 监听器警告处理函数。
    */
   warnHandler: null,
 
   /**
-   * Ignore certain custom elements
+   * 忽略某些自定义元素。
    */
   ignoredElements: [],
 
   /**
-   * Custom user key aliases for v-on
+   * 自定义按键别名（用于 v-on）。
    */
   // $flow-disable-line
   keyCodes: Object.create(null),
 
   /**
-   * Check if a tag is reserved so that it cannot be registered as a
-   * component. This is platform-dependent and may be overwritten.
+   * 检查标签是否为保留标签（平台依赖，可以被覆盖）。
    */
   isReservedTag: no,
 
   /**
-   * Check if an attribute is reserved so that it cannot be used as a component
-   * prop. This is platform-dependent and may be overwritten.
+   * 检查属性是否为保留属性（平台依赖，可以被覆盖）。
    */
   isReservedAttr: no,
 
   /**
-   * Check if a tag is an unknown element.
-   * Platform-dependent.
+   * 检查标签是否为未知元素（平台依赖）。
    */
   isUnknownElement: no,
 
   /**
-   * Get the namespace of an element
+   * 获取元素的命名空间。
    */
   getTagNamespace: noop,
 
   /**
-   * Parse the real tag name for the specific platform.
+   * 解析平台特定的标签名称。
    */
   parsePlatformTagName: identity,
 
   /**
-   * Check if an attribute must be bound using property, e.g. value
-   * Platform-dependent.
+   * 检查属性是否必须使用属性绑定（平台依赖，可以被覆盖）。
    */
   mustUseProp: no,
 
   /**
-   * Perform updates asynchronously. Intended to be used by Vue Test Utils
-   * This will significantly reduce performance if set to false.
+   * 是否异步执行更新。主要用于测试工具中，设置为 false 会显著降低性能。
    */
   async: true,
 
   /**
-   * Exposed for legacy reasons
+   * 遗留的生命周期钩子数组。
    */
   _lifecycleHooks: LIFECYCLE_HOOKS
 }: Config)

@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "core/*": [
+        "./src/core/*"
+      ],
+
+      "compiler/*": [
+        "./src/compiler/*"
+      ],
+      "shared/*": [
+        "./src/shared/*"
+      ],
+      "server/*": [
+        "./src/server/*"
+      ],
+      "web/*": [
+        "./src/platforms/web/*"
+      ],
+      "sfc/*": [
+        "./src/sfc/*"
+      ],
+      "weex/*": [
+        "./src/platforms/weex/*"
+      ]
+    }
+  }
+}
