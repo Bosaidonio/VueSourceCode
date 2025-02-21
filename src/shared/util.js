@@ -226,7 +226,13 @@ export function toArray (list: any, start?: number): Array<any> {
 }
 
 /**
- * Mix properties into target object.
+ * 将源对象的属性混合到目标对象中。
+ * 该函数用于将一个对象的所有可枚举属性复制到另一个对象中。
+ * 主要用于对象属性的合并或扩展。
+ *
+ * @param {Object} to - 目标对象，将接收源对象的属性。
+ * @param {?Object} _from - 源对象，其属性将被复制到目标对象。可以为 null。
+ * @returns {Object} 返回属性已被混合到的目标对象。
  */
 export function extend (to: Object, _from: ?Object): Object {
   for (const key in _from) {
@@ -234,6 +240,7 @@ export function extend (to: Object, _from: ?Object): Object {
   }
   return to
 }
+
 
 /**
  * Merge an Array of Objects into a single Object.

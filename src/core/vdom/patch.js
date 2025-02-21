@@ -122,6 +122,16 @@ export function createPatchFunction (backend) {
 
   let creatingElmInVPre = 0
 
+  /**
+   * 创建虚拟 DOM 节点对应的真实 DOM 元素，并将其插入到父节点中。
+   * @param {VNode} vnode - 虚拟 DOM 节点
+   * @param {Array} insertedVnodeQueue - 用于存储需要调用插入钩子的节点队列
+   * @param {Element} parentElm - 父级 DOM 元素
+   * @param {Element} refElm - 参考 DOM 元素，新元素将插入到其前面
+   * @param {boolean} nested - 是否嵌套创建（用于过渡动画）
+   * @param {Array} ownerArray - 如果 vnode 是数组中的元素，则为该数组
+   * @param {number} index - vnode 在 ownerArray 中的索引
+   */
   function createElm (
     vnode,
     insertedVnodeQueue,
@@ -131,27 +141,29 @@ export function createPatchFunction (backend) {
     ownerArray,
     index
   ) {
+    // 如果 vnode 已经有对应的 DOM 元素，并且它属于一个数组，则克隆一个新的 vnode 避免污染原始数据
     if (isDef(vnode.elm) && isDef(ownerArray)) {
-      // This vnode was used in a previous render!
-      // now it's used as a new node, overwriting its elm would cause
-      // potential patch errors down the road when it's used as an insertion
-      // reference node. Instead, we clone the node on-demand before creating
-      // associated DOM element for it.
       vnode = ownerArray[index] = cloneVNode(vnode)
     }
 
-    vnode.isRootInsert = !nested // for transition enter check
+    // 标记是否是根节点插入（用于过渡动画）
+    vnode.isRootInsert = !nested
+
+    // 尝试创建组件实例，如果成功则直接返回
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
 
-    const data = vnode.data
-    const children = vnode.children
-    const tag = vnode.tag
+    const data = vnode.data // 节点的数据对象
+    const children = vnode.children // 子节点数组
+    const tag = vnode.tag // 节点的标签名
+
     if (isDef(tag)) {
+      // 如果是普通 HTML 元素或自定义组件
       if (process.env.NODE_ENV !== 'production') {
+        // 开发环境下检查未知的自定义元素
         if (data && data.pre) {
-          creatingElmInVPre++
+          creatingElmInVPre++ // 增加 v-pre 计数器
         }
         if (isUnknownElement(vnode, creatingElmInVPre)) {
           warn(
@@ -163,47 +175,53 @@ export function createPatchFunction (backend) {
         }
       }
 
+      // 创建真实 DOM 元素
       vnode.elm = vnode.ns
-        ? nodeOps.createElementNS(vnode.ns, tag)
-        : nodeOps.createElement(tag, vnode)
-      setScope(vnode)
+        ? nodeOps.createElementNS(vnode.ns, tag) // 如果有命名空间，使用 createElementNS
+        : nodeOps.createElement(tag, vnode) // 否则使用 createElement
+
+      setScope(vnode) // 设置作用域样式（scoped CSS）
 
       /* istanbul ignore if */
       if (__WEEX__) {
-        // in Weex, the default insertion order is parent-first.
-        // List items can be optimized to use children-first insertion
-        // with append="tree".
+        // Weex 环境下的特殊处理
         const appendAsTree = isDef(data) && isTrue(data.appendAsTree)
         if (!appendAsTree) {
+          // 如果不需要树状插入，先调用创建钩子并插入 DOM
           if (isDef(data)) {
             invokeCreateHooks(vnode, insertedVnodeQueue)
           }
           insert(parentElm, vnode.elm, refElm)
         }
+        // 创建子节点
         createChildren(vnode, children, insertedVnodeQueue)
         if (appendAsTree) {
+          // 如果需要树状插入，最后再调用创建钩子并插入 DOM
           if (isDef(data)) {
             invokeCreateHooks(vnode, insertedVnodeQueue)
           }
           insert(parentElm, vnode.elm, refElm)
         }
       } else {
-        createChildren(vnode, children, insertedVnodeQueue)
+        // 普通 Web 环境下的处理
+        createChildren(vnode, children, insertedVnodeQueue) // 创建子节点
         if (isDef(data)) {
-          invokeCreateHooks(vnode, insertedVnodeQueue)
+          invokeCreateHooks(vnode, insertedVnodeQueue) // 调用创建钩子
         }
-        insert(parentElm, vnode.elm, refElm)
+        insert(parentElm, vnode.elm, refElm) // 插入到父节点中
       }
 
       if (process.env.NODE_ENV !== 'production' && data && data.pre) {
-        creatingElmInVPre--
+        creatingElmInVPre-- // 减少 v-pre 计数器
       }
     } else if (isTrue(vnode.isComment)) {
-      vnode.elm = nodeOps.createComment(vnode.text)
-      insert(parentElm, vnode.elm, refElm)
+      // 如果是注释节点
+      vnode.elm = nodeOps.createComment(vnode.text) // 创建注释节点
+      insert(parentElm, vnode.elm, refElm) // 插入到父节点中
     } else {
-      vnode.elm = nodeOps.createTextNode(vnode.text)
-      insert(parentElm, vnode.elm, refElm)
+      // 如果是文本节点
+      vnode.elm = nodeOps.createTextNode(vnode.text) // 创建文本节点
+      insert(parentElm, vnode.elm, refElm) // 插入到父节点中
     }
   }
 
@@ -696,39 +714,49 @@ export function createPatchFunction (backend) {
       return node.nodeType === (vnode.isComment ? 8 : 3)
     }
   }
-
+  /**
+   * patch 函数是 Vue 的核心 diff 算法实现，用于比较新旧虚拟 DOM 并更新真实 DOM。
+   * @param {VNode | Element} oldVnode - 旧的虚拟 DOM 节点或真实 DOM 元素
+   * @param {VNode} vnode - 新的虚拟 DOM 节点
+   * @param {boolean} hydrating - 是否进行服务端渲染的 hydration（水合）
+   * @param {boolean} removeOnly - 是否仅移除节点而不插入新节点
+   * @returns {*} 返回更新后的 DOM 元素
+   */
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
+    // 如果新虚拟 DOM 节点未定义，则销毁旧节点并返回
     if (isUndef(vnode)) {
-      if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
+      if (isDef(oldVnode)) invokeDestroyHook(oldVnode) // 调用销毁钩子
       return
     }
 
-    let isInitialPatch = false
-    const insertedVnodeQueue = []
+    let isInitialPatch = false // 标记是否为初次挂载
+    const insertedVnodeQueue = [] // 用于存储需要调用插入钩子的节点
 
+    // 如果旧虚拟 DOM 节点未定义，表示初次挂载
     if (isUndef(oldVnode)) {
-      // empty mount (likely as component), create new root element
       isInitialPatch = true
-      createElm(vnode, insertedVnodeQueue)
+      createElm(vnode, insertedVnodeQueue) // 创建新的 DOM 元素
     } else {
-      const isRealElement = isDef(oldVnode.nodeType)
+      const isRealElement = isDef(oldVnode.nodeType) // 判断旧节点是否为真实 DOM 元素
+
+      // 如果旧节点不是真实 DOM 元素，并且新旧节点是相同的（sameVnode），则进行 patch 更新
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
-        // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly)
       } else {
+        // 如果旧节点是真实 DOM 元素
         if (isRealElement) {
-          // mounting to a real element
-          // check if this is server-rendered content and if we can perform
-          // a successful hydration.
+          // 检查是否是服务端渲染的内容，并尝试进行 hydration
           if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {
-            oldVnode.removeAttribute(SSR_ATTR)
+            oldVnode.removeAttribute(SSR_ATTR) // 移除服务端渲染标记
             hydrating = true
           }
           if (isTrue(hydrating)) {
+            // 尝试 hydration，如果成功则调用插入钩子并返回
             if (hydrate(oldVnode, vnode, insertedVnodeQueue)) {
               invokeInsertHook(vnode, insertedVnodeQueue, true)
               return oldVnode
             } else if (process.env.NODE_ENV !== 'production') {
+              // 如果 hydration 失败，发出警告并回退到客户端渲染
               warn(
                 'The client-side rendered virtual DOM tree is not matching ' +
                 'server-rendered content. This is likely caused by incorrect ' +
@@ -738,66 +766,64 @@ export function createPatchFunction (backend) {
               )
             }
           }
-          // either not server-rendered, or hydration failed.
-          // create an empty node and replace it
+          // 如果不是服务端渲染，或者 hydration 失败，则创建一个空的虚拟 DOM 节点并替换它
           oldVnode = emptyNodeAt(oldVnode)
         }
 
-        // replacing existing element
-        const oldElm = oldVnode.elm
-        const parentElm = nodeOps.parentNode(oldElm)
+        // 替换现有的 DOM 元素
+        const oldElm = oldVnode.elm // 获取旧节点的真实 DOM 元素
+        const parentElm = nodeOps.parentNode(oldElm) // 获取父级 DOM 元素
 
-        // create new node
+        // 创建新的 DOM 元素
         createElm(
           vnode,
           insertedVnodeQueue,
-          // extremely rare edge case: do not insert if old element is in a
-          // leaving transition. Only happens when combining transition +
-          // keep-alive + HOCs. (#4590)
+          // 极少数情况下，如果旧元素处于离开过渡状态，则不插入新元素
           oldElm._leaveCb ? null : parentElm,
           nodeOps.nextSibling(oldElm)
         )
 
-        // update parent placeholder node element, recursively
+        // 递归更新父占位符节点
         if (isDef(vnode.parent)) {
           let ancestor = vnode.parent
           const patchable = isPatchable(vnode)
           while (ancestor) {
+            // 调用销毁钩子
             for (let i = 0; i < cbs.destroy.length; ++i) {
               cbs.destroy[i](ancestor)
             }
             ancestor.elm = vnode.elm
             if (patchable) {
+              // 调用创建钩子
               for (let i = 0; i < cbs.create.length; ++i) {
                 cbs.create[i](emptyNode, ancestor)
               }
-              // #6513
-              // invoke insert hooks that may have been merged by create hooks.
-              // e.g. for directives that uses the "inserted" hook.
+              // 调用插入钩子
               const insert = ancestor.data.hook.insert
               if (insert.merged) {
-                // start at index 1 to avoid re-invoking component mounted hook
+                // 从索引 1 开始，避免重新调用组件的 mounted 钩子
                 for (let i = 1; i < insert.fns.length; i++) {
                   insert.fns[i]()
                 }
               }
             } else {
-              registerRef(ancestor)
+              registerRef(ancestor) // 注册引用
             }
             ancestor = ancestor.parent
           }
         }
 
-        // destroy old node
+        // 销毁旧节点
         if (isDef(parentElm)) {
-          removeVnodes([oldVnode], 0, 0)
+          removeVnodes([oldVnode], 0, 0) // 移除旧节点
         } else if (isDef(oldVnode.tag)) {
-          invokeDestroyHook(oldVnode)
+          invokeDestroyHook(oldVnode) // 调用销毁钩子
         }
       }
     }
 
+    // 调用插入钩子
     invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
-    return vnode.elm
+    return vnode.elm // 返回更新后的 DOM 元素
   }
 }

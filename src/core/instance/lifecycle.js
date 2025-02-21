@@ -55,97 +55,130 @@ export function initLifecycle (vm: Component) {
   vm._isBeingDestroyed = false
 }
 
+/**
+ * 混入生命周期相关的方法到 Vue 原型上，该方法在src/core/instance/index.js文件中,npm run build期间被调用
+ * @param {Class<Component>} Vue - Vue 构造函数
+ */
 export function lifecycleMixin (Vue: Class<Component>) {
+  /**
+   * _update 方法是 Vue 实例的核心更新方法，用于将虚拟 DOM 转换为真实 DOM 并更新视图。
+   * @param {VNode} vnode - 新的虚拟 DOM 节点
+   * @param {boolean} hydrating - 是否进行服务端渲染
+   */
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
-    const prevEl = vm.$el
-    const prevVnode = vm._vnode
-    const restoreActiveInstance = setActiveInstance(vm)
-    vm._vnode = vnode
-    // Vue.prototype.__patch__ is injected in entry points
-    // based on the rendering backend used.
+    const prevEl = vm.$el // 当前的真实 DOM 元素
+    const prevVnode = vm._vnode // 上一次的虚拟 DOM 节点
+    const restoreActiveInstance = setActiveInstance(vm) // 设置当前活动实例
+    vm._vnode = vnode // 更新当前虚拟 DOM 节点
+
+    // Vue.prototype.__patch__ 是根据渲染后端注入的，负责将虚拟 DOM 转换为真实 DOM
     if (!prevVnode) {
-      // initial render
+      // 初次渲染
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
     } else {
-      // updates
+      // 更新渲染
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
-    restoreActiveInstance()
-    // update __vue__ reference
+
+    restoreActiveInstance() // 恢复之前的活动实例
+
+    // 更新 __vue__ 引用
     if (prevEl) {
-      prevEl.__vue__ = null
+      prevEl.__vue__ = null // 清除旧 DOM 的引用
     }
     if (vm.$el) {
-      vm.$el.__vue__ = vm
+      vm.$el.__vue__ = vm // 将新的 DOM 元素与 Vue 实例关联
     }
-    // if parent is an HOC, update its $el as well
+
+    // 如果父组件是一个高阶组件（HOC），也需要更新其 $el
     if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
       vm.$parent.$el = vm.$el
     }
-    // updated hook is called by the scheduler to ensure that children are
-    // updated in a parent's updated hook.
+
+    // updated 钩子由调度器调用，以确保子组件在父组件的 updated 钩子中被更新
   }
 
+  /**
+   * 强制更新当前组件。
+   * 通过触发 watcher 的 update 方法来强制重新渲染。
+   */
   Vue.prototype.$forceUpdate = function () {
     const vm: Component = this
     if (vm._watcher) {
-      vm._watcher.update()
+      vm._watcher.update() // 触发渲染 watcher 的更新
     }
   }
 
+  /**
+   * 销毁 Vue 实例。
+   * 包括清理父子关系、销毁 watcher、移除事件监听器等操作。
+   */
   Vue.prototype.$destroy = function () {
     const vm: Component = this
     if (vm._isBeingDestroyed) {
-      return
+      return // 如果实例已经在销毁过程中，则直接返回
     }
-    callHook(vm, 'beforeDestroy')
-    vm._isBeingDestroyed = true
-    // remove self from parent
+
+    callHook(vm, 'beforeDestroy') // 调用 beforeDestroy 生命周期钩子
+    vm._isBeingDestroyed = true // 标记实例正在销毁
+
+    // 从父组件中移除自己
     const parent = vm.$parent
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
-      remove(parent.$children, vm)
+      remove(parent.$children, vm) // 移除当前实例在父组件的子组件列表中的引用
     }
-    // teardown watchers
+
+    // 销毁所有的 watcher
     if (vm._watcher) {
-      vm._watcher.teardown()
+      vm._watcher.teardown() // 销毁渲染 watcher
     }
     let i = vm._watchers.length
     while (i--) {
-      vm._watchers[i].teardown()
+      vm._watchers[i].teardown() // 销毁所有用户定义的 watcher
     }
-    // remove reference from data ob
-    // frozen object may not have observer.
+
+    // 从数据观察者中移除对 Vue 实例的引用
     if (vm._data.__ob__) {
-      vm._data.__ob__.vmCount--
+      vm._data.__ob__.vmCount-- // 减少观察者的计数
     }
-    // call the last hook...
+
+    // 标记实例已销毁
     vm._isDestroyed = true
-    // invoke destroy hooks on current rendered tree
+
+    // 调用 __patch__ 方法销毁当前渲染树
     vm.__patch__(vm._vnode, null)
-    // fire destroyed hook
+
+    // 调用 destroyed 生命周期钩子
     callHook(vm, 'destroyed')
-    // turn off all instance listeners.
+
+    // 移除所有实例事件监听器
     vm.$off()
-    // remove __vue__ reference
+
+    // 移除 DOM 元素上的 __vue__ 引用
     if (vm.$el) {
       vm.$el.__vue__ = null
     }
-    // release circular reference (#6759)
+
+    // 解决循环引用问题 (#6759)
     if (vm.$vnode) {
       vm.$vnode.parent = null
     }
   }
 }
-
+// 将 Vue 实例挂载到 DOM 元素上，并初始化渲染和更新机制
 export function mountComponent (
-  vm: Component,
-  el: ?Element,
-  hydrating?: boolean
+  vm: Component, // 当前 Vue 实例
+  el: ?Element, // 挂载的目标 DOM 元素
+  hydrating?: boolean // 是否是服务端渲染的水合模式
 ): Component {
-  vm.$el = el
+  vm.$el = el // 将目标 DOM 元素赋值给实例的 $el 属性
+
+  // 如果没有定义 render 函数，则设置一个空的 VNode 渲染函数
   if (!vm.$options.render) {
     vm.$options.render = createEmptyVNode
+
+    // 在开发环境中，检查是否使用了template,但没有使用compile + runtime的版本
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
       if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
@@ -164,54 +197,61 @@ export function mountComponent (
       }
     }
   }
+
+  // 调用 beforeMount 生命周期钩子
   callHook(vm, 'beforeMount')
 
+  // 定义 updateComponent 函数，用于执行渲染和更新逻辑
   let updateComponent
   /* istanbul ignore if */
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+    // 如果启用了性能监控，则记录渲染和更新的耗时
     updateComponent = () => {
-      const name = vm._name
-      const id = vm._uid
-      const startTag = `vue-perf-start:${id}`
-      const endTag = `vue-perf-end:${id}`
+      const name = vm._name // 组件名称
+      const id = vm._uid // 唯一标识符
+      const startTag = `vue-perf-start:${id}` // 性能标记的开始标签
+      const endTag = `vue-perf-end:${id}` // 性能标记的结束标签
 
+      // 记录渲染阶段的性能
       mark(startTag)
-      const vnode = vm._render()
+      const vnode = vm._render() // 调用 _render 方法生成虚拟 DOM
       mark(endTag)
       measure(`vue ${name} render`, startTag, endTag)
 
+      // 记录更新（patch）阶段的性能
       mark(startTag)
-      vm._update(vnode, hydrating)
+      vm._update(vnode, hydrating) // 调用 _update 方法将虚拟 DOM 更新到真实 DOM
       mark(endTag)
       measure(`vue ${name} patch`, startTag, endTag)
     }
   } else {
+    // 生产环境下的 updateComponent 函数
     updateComponent = () => {
-      vm._update(vm._render(), hydrating)
+      vm._update(vm._render(), hydrating) // 调用 _render 和 _update 完成渲染和更新
     }
   }
 
-  // we set this to vm._watcher inside the watcher's constructor
-  // since the watcher's initial patch may call $forceUpdate (e.g. inside child
-  // component's mounted hook), which relies on vm._watcher being already defined
+  // 创建一个渲染观察者（Watcher），用于监听数据变化并触发重新渲染
+  // 在 Watcher 的构造函数中会将自身赋值给 vm._watcher
   new Watcher(vm, updateComponent, noop, {
     before () {
+      // 在组件已挂载且未销毁的情况下，调用 beforeUpdate 生命周期钩子
       if (vm._isMounted && !vm._isDestroyed) {
         callHook(vm, 'beforeUpdate')
       }
     }
   }, true /* isRenderWatcher */)
-  hydrating = false
 
-  // manually mounted instance, call mounted on self
-  // mounted is called for render-created child components in its inserted hook
+  hydrating = false // 标记水合完成
+
+  // 如果当前实例是根组件（$vnode 为 null），则标记为已挂载并调用 mounted 钩子
   if (vm.$vnode == null) {
     vm._isMounted = true
     callHook(vm, 'mounted')
   }
-  return vm
-}
 
+  return vm // 返回当前 Vue 实例
+}
 export function updateChildComponent (
   vm: Component,
   propsData: ?Object,
