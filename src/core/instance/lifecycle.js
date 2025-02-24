@@ -72,7 +72,6 @@ export function lifecycleMixin (Vue: Class<Component>) {
     const restoreActiveInstance = setActiveInstance(vm) // 设置当前活动实例
     vm._vnode = vnode // 更新当前虚拟 DOM 节点
 
-    // Vue.prototype.__patch__ 是根据渲染后端注入的，负责将虚拟 DOM 转换为真实 DOM
     if (!prevVnode) {
       // 初次渲染
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)

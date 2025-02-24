@@ -147,7 +147,7 @@ export function _createElement (
       )
     }
   } else {
-    // 直接传入组件选项或构造函数
+    // 渲染组件的时候，tag就是我们在`.vue`文件中通过export default返回的对象
     vnode = createComponent(tag, data, context, children)
   }
 

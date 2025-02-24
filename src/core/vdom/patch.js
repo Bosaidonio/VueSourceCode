@@ -225,23 +225,59 @@ export function createPatchFunction (backend) {
     }
   }
 
+  /**
+   * 创建并挂载子组件。
+   *
+   * 该函数用于处理虚拟节点（vnode）中的子组件逻辑。如果虚拟节点是一个子组件，则会初始化子组件实例，
+   * 并将其挂载到 DOM 中。此外，还支持 `keep-alive` 的重新激活逻辑。
+   *
+   * @param {VNode} vnode - 当前的虚拟节点。
+   * @param {Array} insertedVnodeQueue - 已插入的虚拟节点队列，用于存储需要调用 `insert` 钩子的节点。
+   * @param {Element} parentElm - 父级 DOM 元素，子组件将被插入到该元素中。
+   * @param {Element} refElm - 参考 DOM 元素，用于指定插入位置（可选）。
+   * @returns {boolean} - 如果成功创建并挂载子组件，返回 true；否则返回 undefined。
+   */
   function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
+    // 获取虚拟节点的 data 属性
     let i = vnode.data
+
+    // 如果 data 存在，则继续处理
     if (isDef(i)) {
+      /**
+       * 检查是否是重新激活的组件（keep-alive 场景）。
+       * 如果虚拟节点已经有一个 componentInstance，并且启用了 keep-alive，则认为是重新激活。
+       */
       const isReactivated = isDef(vnode.componentInstance) && i.keepAlive
+
+      /**
+       * 调用 init 钩子函数。
+       * 如果 data.hook 存在，并且其中定义了 init 钩子函数，则调用它。
+       * init 钩子函数负责初始化子组件实例。
+       */
       if (isDef(i = i.hook) && isDef(i = i.init)) {
-        i(vnode, false /* hydrating */)
+        i(vnode, false /* hydrating */) // 调用 init 钩子，第二个参数表示是否是服务端渲染的 hydration
       }
-      // after calling the init hook, if the vnode is a child component
-      // it should've created a child instance and mounted it. the child
-      // component also has set the placeholder vnode's elm.
-      // in that case we can just return the element and be done.
+
+      /**
+       * 在调用 init 钩子后，如果虚拟节点是一个子组件，它应该已经创建了一个子组件实例并挂载。
+       * 子组件还会设置占位符虚拟节点的 elm 属性（指向实际的 DOM 元素）。
+       * 在这种情况下，我们可以直接返回该元素并完成挂载。
+       */
       if (isDef(vnode.componentInstance)) {
+        // 初始化组件，设置其 elm 属性
         initComponent(vnode, insertedVnodeQueue)
+
+        // 将子组件的 DOM 元素插入到父级 DOM 中
         insert(parentElm, vnode.elm, refElm)
+
+        /**
+         * 如果是重新激活的组件（keep-alive 场景），调用 reactivateComponent 处理重新激活逻辑。
+         */
         if (isTrue(isReactivated)) {
           reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm)
         }
+
+        // 返回 true，表示成功创建并挂载子组件
         return true
       }
     }
@@ -766,13 +802,14 @@ export function createPatchFunction (backend) {
               )
             }
           }
-          // 如果不是服务端渲染，或者 hydration 失败，则创建一个空的虚拟 DOM 节点并替换它
+          // 将真实的Dom转化成虚拟Dom，将真实Dom挂到vnode.elm属性上
           oldVnode = emptyNodeAt(oldVnode)
         }
 
-        // 替换现有的 DOM 元素
-        const oldElm = oldVnode.elm // 获取旧节点的真实 DOM 元素
-        const parentElm = nodeOps.parentNode(oldElm) // 获取父级 DOM 元素
+        // 获取旧节点的真实 DOM 元素
+        const oldElm = oldVnode.elm
+        // 获取父级 DOM 元素
+        const parentElm = nodeOps.parentNode(oldElm)
 
         // 创建新的 DOM 元素
         createElm(
@@ -813,7 +850,7 @@ export function createPatchFunction (backend) {
           }
         }
 
-        // 销毁旧节点
+        // 销毁用户定义的旧节点，例如<div id="app"></div>
         if (isDef(parentElm)) {
           removeVnodes([oldVnode], 0, 0) // 移除旧节点
         } else if (isDef(oldVnode.tag)) {

@@ -101,22 +101,76 @@ export function initMixin (Vue: Class<Component>) {
     }
   }
 }
+/**
+ * 初始化组件的内部选项。
+ *
+ * 该函数用于初始化子组件实例的内部选项（`vm.$options`），并从父级虚拟节点和传递的选项中提取必要的信息。
+ * 它的主要作用是将父级上下文、props 数据、事件监听器等信息注入到子组件的选项中。
+ *
+ * @param {Component} vm - 当前的 Vue 组件实例。
+ * @param {InternalComponentOptions} options - 内部组件选项，包含父级上下文和虚拟节点信息。
+ */
 export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
+  /**
+   * 创建组件的选项对象。
+   * 使用 `Object.create` 创建一个新的对象，并继承自构造器的默认选项（`vm.constructor.options`）。
+   */
   const opts = vm.$options = Object.create(vm.constructor.options)
-  // doing this because it's faster than dynamic enumeration.
+
+  /**
+   * 获取组件级别的vnode。
+   * 包含了组件的相关信息，例如 props 数据、事件监听器等。
+   */
   const parentVnode = options._parentVnode
+
+  /**
+   * 将父级 Vue 实例赋值给组件选项的 `parent` 属性。
+   */
   opts.parent = options.parent
+
+  /**
+   * 设置父级虚拟节点。
+   * 将父级虚拟节点（`options._parentVnode`）赋值给组件选项的 `_parentVnode` 属性。
+   */
   opts._parentVnode = parentVnode
 
+  /**
+   * 提取父级虚拟节点中的组件选项。
+   * 父级虚拟节点的 `componentOptions` 包含了子组件的 props 数据、事件监听器、插槽等内容。
+   */
   const vnodeComponentOptions = parentVnode.componentOptions
+
+  /**
+   * 设置 props 数据。
+   * 将父级虚拟节点中的 props 数据赋值给组件选项的 `propsData` 属性。
+   */
   opts.propsData = vnodeComponentOptions.propsData
+
+  /**
+   * 设置父级事件监听器。
+   * 将父级虚拟节点中的事件监听器赋值给组件选项的 `_parentListeners` 属性。
+   */
   opts._parentListeners = vnodeComponentOptions.listeners
+
+  /**
+   * 设置渲染子节点。
+   * 将父级虚拟节点中的子节点（插槽内容）赋值给组件选项的 `_renderChildren` 属性。
+   */
   opts._renderChildren = vnodeComponentOptions.children
+
+  /**
+   * 设置组件标签。
+   * 将父级虚拟节点中的组件标签赋值给组件选项的 `_componentTag` 属性。
+   */
   opts._componentTag = vnodeComponentOptions.tag
 
+  /**
+   * 处理内联模板的渲染函数。
+   * 如果存在内联模板的渲染函数（`options.render` 和 `options.staticRenderFns`），则将其赋值给组件选项。
+   */
   if (options.render) {
-    opts.render = options.render
-    opts.staticRenderFns = options.staticRenderFns
+    opts.render = options.render // 渲染函数
+    opts.staticRenderFns = options.staticRenderFns // 静态渲染函数
   }
 }
 
