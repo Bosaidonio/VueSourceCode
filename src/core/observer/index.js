@@ -198,36 +198,72 @@ export function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
-export function set (target: Array<any> | Object, key: any, val: any): any {
-  if (process.env.NODE_ENV !== 'production' &&
-    (isUndef(target) || isPrimitive(target))
+export function set(
+  target: Array<any> | Object, // 目标对象或数组
+  key: any,                    // 要设置的键（可以是数组索引或对象属性名）
+  val: any                     // 要设置的值
+): any {
+  // 检查当前环境是否为非生产环境，并且目标对象是否为 undefined、null 或原始类型
+  if (
+    process.env.NODE_ENV !== 'production' && // 非生产环境
+    (isUndef(target) || isPrimitive(target)) // 目标对象是 undefined、null 或原始类型
   ) {
-    warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
+    // 如果目标对象无效，抛出警告
+    warn(
+      `Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`
+    );
   }
+
+  // 如果目标是一个数组，并且键是一个有效的数组索引
   if (Array.isArray(target) && isValidArrayIndex(key)) {
-    target.length = Math.max(target.length, key)
-    target.splice(key, 1, val)
-    return val
+    // 确保数组长度足够容纳新元素
+    target.length = Math.max(target.length, key);
+    // 使用 splice 方法在指定索引处插入或替换值
+    target.splice(key, 1, val);
+    // 返回设置的值
+    return val;
   }
+
+  // 如果键已经存在于目标对象中，并且该键不是来自 Object.prototype 的原型链属性
   if (key in target && !(key in Object.prototype)) {
-    target[key] = val
-    return val
+    // 直接设置目标对象的属性值
+    target[key] = val;
+    // 返回设置的值
+    return val;
   }
-  const ob = (target: any).__ob__
+
+  // 获取目标对象的观察者实例（__ob__ 是 Vue 的响应式系统中的一个内部属性）
+  const ob = (target: any).__ob__;
+
+  // 如果目标对象是一个 Vue 实例，或者是一个被观察的根数据对象（vmCount 表示它是 Vue 实例的根数据）
   if (target._isVue || (ob && ob.vmCount)) {
-    process.env.NODE_ENV !== 'production' && warn(
+    // 在非生产环境中发出警告，提示不要在运行时动态添加响应式属性
+    process.env.NODE_ENV !== 'production' &&
+    warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
       'at runtime - declare it upfront in the data option.'
-    )
-    return val
+    );
+    // 返回设置的值
+    return val;
   }
+
+  // 如果目标对象没有观察者实例（即它不是一个响应式对象）
   if (!ob) {
-    target[key] = val
-    return val
+    // 直接设置目标对象的属性值
+    target[key] = val;
+    // 返回设置的值
+    return val;
   }
-  defineReactive(ob.value, key, val)
-  ob.dep.notify()
-  return val
+
+  // 如果目标对象是一个响应式对象，使用 defineReactive 方法定义新的响应式属性
+  defineReactive(ob.value, key, val);
+
+  // 触发依赖更新（通知所有订阅者该属性已更改）
+  // 这里的依赖收集操作是通过初始化时defineReactive中的childOb.dep.depend()将watcher添加进依赖队列中的
+  ob.dep.notify();
+
+  // 返回设置的值
+  return val;
 }
 
 /**
