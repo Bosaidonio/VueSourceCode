@@ -128,7 +128,7 @@ export default class Watcher {
       if (this.deep) {
         traverse(value)
       }
-      popTarget() // 移除当前 watcher
+      popTarget() // 清除全局变量Dep.target的Watcher实例，或取回上一次的watcher实例
       this.cleanupDeps() // 清理旧的依赖
     }
     return value
@@ -210,7 +210,7 @@ export default class Watcher {
   }
 
   /**
-   * 计算惰性 watcher 的值。
+   * 触发计算属性的 getter时，会调用该函数
    */
   evaluate () {
     this.value = this.get() // 获取最新值
